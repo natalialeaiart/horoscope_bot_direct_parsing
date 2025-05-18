@@ -2,11 +2,19 @@
 # -*- coding: utf-8 -*-
 
 import requests
-import logging
 from bs4 import BeautifulSoup
+import logging
+import time
 from typing import Dict, Optional
 
-# Словарь: знаки зодиака EN -> RU
+# Логирование
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
+logger = logging.getLogger(__name__)
+
+# Словарь знаков зодиака EN→RU
 ZODIAC_SIGNS = {
     "aries": "Овен",
     "taurus": "Телец",
@@ -22,70 +30,78 @@ ZODIAC_SIGNS = {
     "pisces": "Рыбы"
 }
 
-# Логирование
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
-)
-logger = logging.getLogger(__name__)
-
 class HoroscopeParser:
     """Класс для парсинга гороскопов с сайта astrology.com"""
+    BASE_URL = "https://www.astrology.com/horoscope/daily"
 
-    def __init__(self):
-        """Инициализация парсера"""
+    def __init__(self, max_retries: int = 3, retry_delay: int = 2):
+        self.max_retries = max_retries
+        self.retry_delay = retry_delay
         self.session = requests.Session()
         self.session.headers.update({
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
         })
 
-    def get_all_horoscopes(self) -> Dict[str, str]:
-        """
-        Получает гороскопы для всех знаков зодиака с обновлённой структуры сайта astrology.com.
-        Returns:
-            Dict[str, str]: Словарь с гороскопами, где ключ - знак зодиака, значение - текст гороскопа
-        """
-        horoscopes = {}
-        base_url = "https://www.astrology.com/horoscope/daily/{}.html"
-        for sign in ZODIAC_SIGNS.keys():
+    def _make_request(self, url: str) -> Optional[str]:
+        for attempt in range(self.max_retries):
             try:
-                url = base_url.format(sign)
-                logger.info(f"Fetching horoscope for {sign} from {url}")
-                response = self.session.get(url)
+                response = self.session.get(url, timeout=10)
                 response.raise_for_status()
-                soup = BeautifulSoup(response.text, 'html.parser')
-                # В новой структуре гороскоп — это первый <p> внутри <div class="horoscope-main-content">
-                content_div = soup.find('div', class_='horoscope-main-content')
-                if content_div:
-                    p = content_div.find('p')
-                    if p and p.text.strip():
-                        horoscopes[sign] = p.text.strip()
-                    else:
-                        logger.warning(f"Could not find horoscope text for {sign}")
+                return response.text
+            except requests.RequestException as e:
+                logger.warning(f"Attempt {attempt + 1}/{self.max_retries} failed: {e}")
+                if attempt < self.max_retries - 1:
+                    time.sleep(self.retry_delay)
                 else:
-                    logger.warning(f"Could not find content div for {sign}")
-            except Exception as e:
-                logger.error(f"Error fetching horoscope for {sign}: {e}")
-        logger.info(f"Successfully fetched {len(horoscopes)} horoscopes")
-        return horoscopes
+                    logger.error(f"Failed to fetch {url} after {self.max_retries} attempts")
+                    return None
 
-    def get_horoscope_for_sign(self, sign: str) -> Optional[str]:
-        """
-        Получает гороскоп для конкретного знака зодиака
-        Args:
-            sign: Знак зодиака на английском (lowercase)
-        Returns:
-            Optional[str]: Текст гороскопа или None, если не удалось получить
-        """
+    def get_horoscope(self, sign: str) -> Optional[str]:
         if sign not in ZODIAC_SIGNS:
             logger.error(f"Invalid zodiac sign: {sign}")
             return None
-        horoscopes = self.get_all_horoscopes()
-        return horoscopes.get(sign)
 
-# Для теста напрямую (можно удалить)
+        url = f"{self.BASE_URL}/{sign}.html"
+        html = self._make_request(url)
+        if not html:
+            return None
+
+        try:
+            soup = BeautifulSoup(html, 'html.parser')
+            # Актуальный способ: ищем просто самый длинный параграф
+            paragraphs = soup.find_all('p')
+            # Выбираем самый длинный параграф (скорее всего, это гороскоп)
+            horoscope_text = ""
+            for p in paragraphs:
+                text = p.get_text(strip=True)
+                if len(text) > len(horoscope_text):
+                    horoscope_text = text
+            if horoscope_text and len(horoscope_text) > 80:
+                return horoscope_text
+
+            logger.error(f"Could not find horoscope text for {sign}")
+            return None
+
+        except Exception as e:
+            logger.error(f"Error parsing horoscope for {sign}: {e}")
+            return None
+
+    def get_all_horoscopes(self) -> Dict[str, str]:
+        result = {}
+        for sign in ZODIAC_SIGNS:
+            logger.info(f"Fetching horoscope for {sign}")
+            horoscope = self.get_horoscope(sign)
+            if horoscope:
+                result[sign] = horoscope
+            else:
+                logger.warning(f"Failed to get horoscope for {sign}")
+        return result
+
+# Для тестирования
 if __name__ == "__main__":
     parser = HoroscopeParser()
     horoscopes = parser.get_all_horoscopes()
     for sign, text in horoscopes.items():
-        print(f"{ZODIAC_SIGNS[sign]}: {text}\n")
+        print(f"=== {ZODIAC_SIGNS[sign]} ===")
+        print(text[:180] + "..." if len(text) > 180 else text)
+        print()
