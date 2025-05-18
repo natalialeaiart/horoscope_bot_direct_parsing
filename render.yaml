@@ -1,0 +1,37 @@
+services:
+  # Веб-сервис для обработки команд бота
+  - type: web
+    name: horoscope-bot
+    env: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: python main.py --run-bot
+    envVars:
+      - key: TELEGRAM_BOT_TOKEN
+        sync: false
+      - key: TELEGRAM_CHANNEL_ID
+        sync: false
+      - key: OPENAI_API_KEY
+        sync: false
+    autoDeploy: true
+
+  # Cron Job для ежедневного постинга в 9:00 по рижскому времени
+  - type: cron
+    name: daily-horoscope-post
+    env: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: python main.py --daily-post
+    schedule: "0 9 * * *"
+    timeZone: Europe/Riga
+    envVars:
+      - key: TELEGRAM_BOT_TOKEN
+        fromService:
+          name: horoscope-bot
+          key: TELEGRAM_BOT_TOKEN
+      - key: TELEGRAM_CHANNEL_ID
+        fromService:
+          name: horoscope-bot
+          key: TELEGRAM_CHANNEL_ID
+      - key: OPENAI_API_KEY
+        fromService:
+          name: horoscope-bot
+          key: OPENAI_API_KEY
