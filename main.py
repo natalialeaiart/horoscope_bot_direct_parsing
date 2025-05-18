@@ -32,7 +32,7 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 # --------- ВАЖНО: тут правильный username ---------
-bot_username = os.getenv("BOT_USERNAME", "zen_dose_bot")  # Имя твоего бота без @
+bot_username = os.getenv("BOT_USERNAME", "moondosebot")  # Имя твоего нового бота без @
 
 def make_zodiac_keyboard(bot_username):
     keyboard = []
@@ -47,7 +47,7 @@ def make_zodiac_keyboard(bot_username):
     if row:
         keyboard.append(row)
     return InlineKeyboardMarkup(keyboard)
-
+    
 class HoroscopeBot:
     """Основной класс Telegram-бота для гороскопов"""
 
