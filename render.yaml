@@ -12,7 +12,7 @@ services:
         sync: false
       - key: OPENAI_API_KEY
         sync: false
-    autoDeploy: true
+    autoDeploy: false
 
   # Cron Job для ежедневного постинга в 9:00 по рижскому времени
   - type: cron
