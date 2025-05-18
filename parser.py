@@ -43,76 +43,35 @@ class HoroscopeParser:
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
         })
     
-    def get_all_horoscopes(self) -> Dict[str, str]:
-        """
-        Получает гороскопы для всех знаков зодиака
-        
-        Returns:
-            Dict[str, str]: Словарь с гороскопами, где ключ - знак зодиака, значение - текст гороскопа
-        """
+def get_all_horoscopes(self) -> Dict[str, str]:
+    """
+    Получает гороскопы для всех знаков зодиака с обновлённой структуры сайта astrology.com.
+    Returns:
+        Dict[str, str]: Словарь с гороскопами, где ключ - знак зодиака, значение - текст гороскопа
+    """
+    horoscopes = {}
+    base_url = "https://www.astrology.com/horoscope/daily/{}.html"
+    for sign in ZODIAC_SIGNS.keys():
         try:
-            logger.info("Fetching horoscopes from astrology.com")
-            
-            # Получаем HTML-страницу
-            response = self.session.get(HOROSCOPE_URL)
+            url = base_url.format(sign)
+            logger.info(f"Fetching horoscope for {sign} from {url}")
+            response = self.session.get(url)
             response.raise_for_status()
-            
-            # Парсим HTML
             soup = BeautifulSoup(response.text, 'html.parser')
-            
-            # Словарь для хранения гороскопов
-            horoscopes = {}
-            
-            # Находим все блоки с гороскопами
-            horoscope_blocks = soup.find_all('div', class_='horoscope-content')
-            
-            if not horoscope_blocks:
-                # Альтернативный поиск, если структура сайта изменилась
-                horoscope_blocks = soup.find_all('a', class_='horoscope-card')
-            
-            if not horoscope_blocks:
-                logger.error("Could not find horoscope blocks on the page")
-                return {}
-            
-            # Извлекаем гороскопы для каждого знака
-            for block in horoscope_blocks:
-                sign = None
-                text = None
-                
-                # Пытаемся найти знак зодиака
-                sign_elem = block.find('h3') or block.find('h2') or block.find('span', class_='sign-name')
-                if sign_elem:
-                    sign = sign_elem.text.strip().lower()
-                
-                # Пытаемся найти текст гороскопа
-                text_elem = block.find('p') or block.find('div', class_='horoscope-text')
-                if text_elem:
-                    text = text_elem.text.strip()
-                
-                # Если не нашли текст, пробуем получить весь текст блока
-                if not text:
-                    text = block.text.strip()
-                    # Удаляем "Read More" и подобные фразы
-                    text = text.replace("Read More", "").strip()
-                
-                # Если нашли и знак, и текст, добавляем в словарь
-                if sign and text and sign in ZODIAC_SIGNS.keys():
-                    horoscopes[sign] = text
-            
-            # Проверяем, что получили все гороскопы
-            if len(horoscopes) < 12:
-                logger.warning(f"Only found {len(horoscopes)} horoscopes instead of 12")
-                
-                # Если не нашли все гороскопы, пробуем альтернативный метод
-                if len(horoscopes) == 0:
-                    return self._alternative_parsing(soup)
-            
-            logger.info(f"Successfully fetched {len(horoscopes)} horoscopes")
-            return horoscopes
-            
+            # В новой структуре гороскоп — это первый <p> внутри <div class="horoscope-main-content">
+            content_div = soup.find('div', class_='horoscope-main-content')
+            if content_div:
+                p = content_div.find('p')
+                if p and p.text.strip():
+                    horoscopes[sign] = p.text.strip()
+                else:
+                    logger.warning(f"Could not find horoscope text for {sign}")
+            else:
+                logger.warning(f"Could not find content div for {sign}")
         except Exception as e:
-            logger.error(f"Error fetching horoscopes: {e}")
-            return {}
+            logger.error(f"Error fetching horoscope for {sign}: {e}")
+    logger.info(f"Successfully fetched {len(horoscopes)} horoscopes")
+    return horoscopes
     
     def _alternative_parsing(self, soup: BeautifulSoup) -> Dict[str, str]:
         """
