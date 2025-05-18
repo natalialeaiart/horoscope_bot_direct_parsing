@@ -127,7 +127,7 @@ class HoroscopeBot:
         # Если параметров нет — приветствие один раз
         if update.message.chat.type == "private":
             await update.message.reply_text(
-                "Привет! Я бот-гороскоп. Нажми ещё раз START и получи прогноз.
+                "Привет! Я бот-гороскоп. Нажми ещё раз START и получи прогноз."
         )
         
     async def run_bot(self) -> None:
