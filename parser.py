@@ -6,7 +6,7 @@ import logging
 from bs4 import BeautifulSoup
 from typing import Dict, Optional
 
-# Соответствие знаков зодиака на английском и русском
+# Словарь: знаки зодиака EN -> RU
 ZODIAC_SIGNS = {
     "aries": "Овен",
     "taurus": "Телец",
@@ -83,9 +83,9 @@ class HoroscopeParser:
         horoscopes = self.get_all_horoscopes()
         return horoscopes.get(sign)
 
-# Пример теста (можно запускать отдельно)
+# Для теста напрямую (можно удалить)
 if __name__ == "__main__":
     parser = HoroscopeParser()
     horoscopes = parser.get_all_horoscopes()
     for sign, text in horoscopes.items():
-        print(f"{ZODIAC_SIGNS[sign]}: {text[:100]}...\n")
+        print(f"{ZODIAC_SIGNS[sign]}: {text}\n")
