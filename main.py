@@ -31,8 +31,10 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
+# --------- ВАЖНО: тут правильный username ---------
+bot_username = os.getenv("BOT_USERNAME", "zen_dose_bot")  # Имя твоего бота без @
+
 def make_zodiac_keyboard(bot_username):
-    # bot_username — без @, например nataliale_aiartbot
     keyboard = []
     signs = list(ZODIAC_SIGNS.items())
     row = []
@@ -49,11 +51,10 @@ def make_zodiac_keyboard(bot_username):
 class HoroscopeBot:
     """Основной класс Telegram-бота для гороскопов"""
 
-    def __init__(self, telegram_token: str, channel_id: str, openai_api_key: Optional[str] = None, bot_username: str = None):
+    def __init__(self, telegram_token: str, channel_id: str, openai_api_key: Optional[str] = None):
         self.telegram_token = telegram_token
         self.channel_id = channel_id
         self.openai_api_key = openai_api_key
-        self.bot_username = bot_username or os.getenv("BOT_USERNAME")  # Username без @
         self.parser = HoroscopeParser()
         self.translator = HoroscopeTranslator(api_key=openai_api_key)
         self.horoscopes_cache = {}
@@ -93,8 +94,6 @@ class HoroscopeBot:
                 "Выбери свой знак зодиака и получи персональный прогноз в личных сообщениях:"
             )
 
-            # Используй username БЕЗ @!
-            bot_username = self.bot_username or "nataliale_aiartbot"  # замени на свой username!
             reply_markup = make_zodiac_keyboard(bot_username)
 
             application = Application.builder().token(self.telegram_token).build()
@@ -125,7 +124,6 @@ class HoroscopeBot:
                         f"Твой гороскоп на сегодня для знака {zodiac_name}:\n\n{horoscope}"
                     )
                     return
-        # Приветствие, если без параметра или знак неверный
         await update.message.reply_text(
             "Привет! Я бот-гороскоп. Выбери свой знак зодиака из канала и получи персональный прогноз."
         )
@@ -151,8 +149,6 @@ async def main() -> None:
     telegram_token = os.getenv("TELEGRAM_BOT_TOKEN")
     channel_id = os.getenv("TELEGRAM_CHANNEL_ID")
     openai_api_key = os.getenv("OPENAI_API_KEY")
-    # Пропиши username без @, либо добавь в .env переменную BOT_USERNAME
-    bot_username = os.getenv("BOT_USERNAME", "nataliale_aiartbot") # ОБНОВИ на свой username!
 
     if not telegram_token or not channel_id or not openai_api_key:
         logger.error("TELEGRAM_BOT_TOKEN, TELEGRAM_CHANNEL_ID or OPENAI_API_KEY not set")
@@ -163,7 +159,7 @@ async def main() -> None:
     parser.add_argument("--run-bot", action="store_true", help="Run bot in polling mode")
     args = parser.parse_args()
 
-    bot = HoroscopeBot(telegram_token, channel_id, openai_api_key, bot_username)
+    bot = HoroscopeBot(telegram_token, channel_id, openai_api_key)
 
     if args.daily_post:
         await bot.send_daily_post()
