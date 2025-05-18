@@ -110,25 +110,24 @@ class HoroscopeBot:
             logger.error(f"Failed to send daily post: {e}")
 
     async def start(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    args = context.args
-    if args:
-        sign = args[0].lower()
-        if sign in ZODIAC_SIGNS:
-            # Кэшируем гороскопы, чтобы не дергать каждый раз
-            if not self.horoscopes_cache:
-                self.horoscopes_cache = await self.fetch_and_translate_horoscopes()
-            horoscope = self.horoscopes_cache.get(sign)
-            zodiac_name = ZODIAC_SIGNS[sign]
-            if horoscope:
-                await update.message.reply_text(
-                    f"Твой гороскоп на сегодня для знака {zodiac_name}:\n\n{horoscope}"
-                )
-                return
+        args = context.args
+        if args:
+            sign = args[0].lower()
+            if sign in ZODIAC_SIGNS:
+                if not self.horoscopes_cache:
+                    self.horoscopes_cache = await self.fetch_and_translate_horoscopes()
+                horoscope = self.horoscopes_cache.get(sign)
+                zodiac_name = ZODIAC_SIGNS[sign]
+                if horoscope:
+                    await update.message.reply_text(
+                        f"Твой гороскоп на сегодня для знака {zodiac_name}:\n\n{horoscope}"
+                    )
+                    return
 
-    # Если параметров нет — молча ничего не шлём или пишем один раз приветствие
-    if update.message.chat.type == "private":
-        await update.message.reply_text(
-            "Привет! Я бот-гороскоп. Нажми ещё раз START и получи прогноз."
+        # Если параметров нет — приветствие один раз
+        if update.message.chat.type == "private":
+            await update.message.reply_text(
+                "Привет! Я бот-гороскоп. Нажми ещё раз START и получи прогноз.
         )
         
     async def run_bot(self) -> None:
