@@ -1,6 +1,6 @@
 services:
   # Веб-сервис для обработки команд бота
-  - type: web
+  - type: worker
     name: horoscope-bot
     env: python
     buildCommand: pip install -r requirements.txt
