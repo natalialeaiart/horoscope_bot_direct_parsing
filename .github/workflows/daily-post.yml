@@ -6,8 +6,9 @@ on:
   workflow_dispatch:
   
   # Автоматический запуск по расписанию (9:00 по Риге = 6:00 UTC)
-  schedule:
-    - cron: '0 6 * * *'
+  #убрать слеш со следующих двух строчек и всё заработает 
+  #schedule:
+    #- cron: '0 6 * * *'
 
 jobs:
   post-horoscope:
